@@ -1,0 +1,21 @@
+unmanaged implementation in class zbp_ce_bom_api unique;
+strict ( 2 );
+
+define behavior for ZCE_BOM_API alias BomApi
+lock master
+authorization master ( global )
+{
+  field ( readonly ) ApiId;
+
+  static action ValidateMaterialPlant
+    parameter ZA_BOM_VALIDATE_REQ
+    result [1] ZA_BOM_VALIDATE_RES;
+
+//  static action CreateBOM
+//    parameter ZA_BOM_CREATE_REQ
+//    result [1] ZA_BOM_CREATE_RES;
+//
+//  static action GetAlternateBOM
+//    parameter ZA_BOM_ALT_REQ
+//    result [1] ZA_BOM_ALT_RES;
+}

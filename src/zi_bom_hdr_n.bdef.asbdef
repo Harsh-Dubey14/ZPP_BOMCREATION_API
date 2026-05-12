@@ -1,0 +1,73 @@
+managed implementation in class zbp_i_bom_hdr_n unique;
+strict ( 2 );
+
+define behavior for ZI_BOM_HDR_N //alias <alias_name>
+persistent table ztb_bom_hdr_n
+lock master
+authorization master ( instance )
+//etag master <field_name>
+{
+  create ( authorization : global );
+  update;
+  delete;
+  field(numbering : managed,readonly)  BomId;
+  field ( readonly )
+    CreatedBy,
+    CreatedAt,
+    ChangedBy,
+    ChangedAt,
+    LocalLastChangedAt;
+  association _Item { create; }
+
+
+action SubmitBOM result [1] $self;
+  determination CreateStandardBOM on modify { create; }
+
+    mapping for ztb_bom_hdr_n
+  {
+    BomId              = bom_id;
+    Material           = material;
+    Plant              = plant;
+    BomUsage           = bom_usage;
+    AltBom             = alt_bom;
+    BaseQty            = base_qty;
+    BaseUom            = base_uom;
+    ValidFrom          = valid_from;
+    Status             = status;
+    Message            = message;
+    ApiResponse        = api_response;
+    CreatedBy          = created_by;
+    CreatedAt          = created_at;
+    ChangedBy          = changed_by;
+    ChangedAt          = changed_at;
+    LocalLastChangedAt = local_last_changed_at;
+  }
+}
+
+define behavior for ZI_BOM_ITM_N //alias <alias_name>
+persistent table ztb_bom_itm_n
+lock dependent by _Header
+authorization dependent by _Header
+//etag master <field_name>
+{
+  update;
+  delete;
+    field ( readonly:update ) ItemNo;
+  field ( readonly ) BomId;
+  association _Header;
+    mapping for ztb_bom_itm_n
+  {
+    BomId              = bom_id;
+    ItemNo             = item_no;
+    ItemCategory       = item_category;
+    Component          = component;
+    Quantity           = quantity;
+    Uom                = uom;
+    ItemText           = item_text;
+    CreatedBy          = created_by;
+    CreatedAt          = created_at;
+    ChangedBy          = changed_by;
+    ChangedAt          = changed_at;
+    LocalLastChangedAt = local_last_changed_at;
+  }
+}

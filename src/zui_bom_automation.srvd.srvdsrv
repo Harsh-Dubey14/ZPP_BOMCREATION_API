@@ -1,0 +1,8 @@
+@EndUserText.label: 'BOM Automation Service'
+define service ZUI_BOM_AUTOMATION {
+  expose ZCE_BOM_API         as BomApi;
+  expose ZC_BOM_HDR_N        as BomCreate;
+  expose ZC_BOM_ITM_N;
+  expose zi_product_plant_vh as product_plant_vh;
+  expose ZI_PLANT_VH_n       as plant_vh;
+}
