@@ -1,8 +1,12 @@
 @EndUserText.label: 'BOM Automation Service'
 define service ZUI_BOM_AUTOMATION {
-  expose ZCE_BOM_API         as BomApi;
-  expose ZC_BOM_HDR_N        as BomCreate;
+  expose ZCE_BOM_API           as BomApi;
+  expose ZC_BOM_HDR_N          as BomCreate;
   expose ZC_BOM_ITM_N;
-  expose zi_product_plant_vh as product_plant_vh;
-  expose ZI_PLANT_VH_n       as plant_vh;
+  expose zi_product_plant_vh   as product_plant_vh;
+  expose ZI_PLANT_VH_n         as plant_vh;
+  expose zi_product_item       as component_vh;
+  expose zi_component_plant_vh as plant_component_vh;
+  expose zi_sort_string        as sort_string;
+  expose ZCE_BOM_CHANGE_READ   as BomChangeRead;
 }

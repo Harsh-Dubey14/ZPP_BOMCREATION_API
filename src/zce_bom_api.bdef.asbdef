@@ -11,11 +11,15 @@ authorization master ( global )
     parameter ZA_BOM_VALIDATE_REQ
     result [1] ZA_BOM_VALIDATE_RES;
 
-//  static action CreateBOM
-//    parameter ZA_BOM_CREATE_REQ
-//    result [1] ZA_BOM_CREATE_RES;
-//
-//  static action GetAlternateBOM
-//    parameter ZA_BOM_ALT_REQ
-//    result [1] ZA_BOM_ALT_RES;
+  static action GetAlternateBOMItems
+    parameter ZA_BOM_ALT_ITEMS_REQ
+    result [0..*] ZA_BOM_ALT_ITEMS_RES;
+
+  static action GetNextAltBOM
+    parameter ZA_BOM_NEXT_ALT_REQ
+    result [1] ZA_BOM_NEXT_ALT_RES;
+
+     static action ChangeBOMItem
+    parameter ZABS_BOM_CHANGE_PARAM
+    result [1] ZA_BOM_CHANGE_ITEM_RES;
 }

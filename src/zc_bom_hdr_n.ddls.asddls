@@ -11,6 +11,7 @@ define root view entity ZC_BOM_HDR_N as projection on ZI_BOM_HDR_N
     BaseQty,
     BaseUom,
     ValidFrom,
+    BomStatus,
     Status,
     Message,
     ApiResponse,

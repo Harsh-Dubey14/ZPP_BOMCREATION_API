@@ -6,30 +6,32 @@ CLASS zcl_bom_create_api DEFINITION
   PUBLIC SECTION.
 
     TYPES: BEGIN OF ty_header,
-             bom_id       TYPE sysuuid_x16,
-             material     TYPE matnr,
-             plant        TYPE werks_d,
-             bom_usage(1) TYPE c,
-             alt_bom(2)   TYPE c,
-             base_qty     TYPE p LENGTH 16 DECIMALS 3,
-             base_uom     TYPE meins,
-             valid_from   TYPE d,
+             bom_id        TYPE sysuuid_x16,
+             material      TYPE i_product-product,
+             plant         TYPE i_plant-plant,
+             bom_usage(1)  TYPE c,
+             alt_bom(2)    TYPE c,
+             base_qty      TYPE p LENGTH 16 DECIMALS 3,
+             base_uom      TYPE i_billofmaterialitemtp_3-billofmaterialitemunit,
+             valid_from    TYPE d,
+             bom_status(2) TYPE c,
            END OF ty_header.
 
     TYPES: BEGIN OF ty_item,
              item_no(4)       TYPE c,
              item_category(1) TYPE c,
-             component        TYPE matnr,
+             component        TYPE i_product-product,
              quantity         TYPE p LENGTH 16 DECIMALS 3,
-             uom              TYPE meins,
+             uom              TYPE i_billofmaterialitemtp_3-billofmaterialitemunit,
              item_text(40)    TYPE c,
+             sort_string(40)  TYPE c,
            END OF ty_item.
 
     TYPES ty_item_tab TYPE STANDARD TABLE OF ty_item WITH EMPTY KEY.
 
     TYPES: BEGIN OF ty_result,
              success      TYPE abap_boolean,
-             base_uom     TYPE meins,
+             base_uom     TYPE i_billofmaterialitemtp_3-billofmaterialitemunit,
              status(20)   TYPE c,
              message(255) TYPE c,
              api_response TYPE string,
@@ -49,15 +51,15 @@ CLASS zcl_bom_create_api DEFINITION
 
     CLASS-METHODS get_base_unit
       IMPORTING
-        iv_material        TYPE matnr
+        iv_material        TYPE i_product-product
       RETURNING
-        VALUE(rv_base_uom) TYPE meins.
+        VALUE(rv_base_uom) TYPE i_billofmaterialitemtp_3-billofmaterialitemunit.
 
     CLASS-METHODS build_payload
       IMPORTING
         is_header      TYPE ty_header
         it_item        TYPE ty_item_tab
-        iv_base_uom    TYPE meins
+        iv_base_uom    TYPE i_billofmaterialitemtp_3-billofmaterialitemunit
       RETURNING
         VALUE(rv_json) TYPE string.
 
@@ -81,85 +83,117 @@ CLASS zcl_bom_create_api DEFINITION
       RETURNING
         VALUE(rv_authorization) TYPE string.
 
+    CLASS-METHODS extract_error_message
+      IMPORTING
+        iv_response       TYPE string
+      RETURNING
+        VALUE(rv_message) TYPE string.
+
+    CLASS-METHODS build_exception_message
+      IMPORTING
+        ix_error          TYPE REF TO cx_root
+      RETURNING
+        VALUE(rv_message) TYPE string.
+
 ENDCLASS.
 
 
 
-CLASS zcl_bom_create_api IMPLEMENTATION.
+CLASS ZCL_BOM_CREATE_API IMPLEMENTATION.
+
 
   METHOD create_bom.
 
-    IF is_header-material IS INITIAL.
-      rs_result-success = abap_false.
-      rs_result-status  = 'ERROR'.
-      rs_result-message = 'Material is mandatory'.
-      RETURN.
-    ENDIF.
+    TRY.
 
-    IF is_header-plant IS INITIAL.
-      rs_result-success = abap_false.
-      rs_result-status  = 'ERROR'.
-      rs_result-message = 'Plant is mandatory'.
-      RETURN.
-    ENDIF.
+        IF is_header-material IS INITIAL.
+          rs_result-success = abap_false.
+          rs_result-status  = 'ERROR'.
+          rs_result-message = 'Material is mandatory'.
+          RETURN.
+        ENDIF.
 
-    IF is_header-alt_bom IS INITIAL.
-      rs_result-success = abap_false.
-      rs_result-status  = 'ERROR'.
-      rs_result-message = 'Alternative BOM / BOM Variant is mandatory'.
-      RETURN.
-    ENDIF.
+        IF is_header-plant IS INITIAL.
+          rs_result-success = abap_false.
+          rs_result-status  = 'ERROR'.
+          rs_result-message = 'Plant is mandatory'.
+          RETURN.
+        ENDIF.
 
-    IF it_item IS INITIAL.
-      rs_result-success = abap_false.
-      rs_result-status  = 'ERROR'.
-      rs_result-message = 'At least one BOM item is required'.
-      RETURN.
-    ENDIF.
+        IF is_header-alt_bom IS INITIAL.
+          rs_result-success = abap_false.
+          rs_result-status  = 'ERROR'.
+          rs_result-message = 'Alternative BOM / BOM Variant is mandatory'.
+          RETURN.
+        ENDIF.
 
-    DATA(lv_base_uom) = get_base_unit( is_header-material ).
+        IF it_item IS INITIAL.
+          rs_result-success = abap_false.
+          rs_result-status  = 'ERROR'.
+          rs_result-message = 'At least one BOM item is required'.
+          RETURN.
+        ENDIF.
 
-    IF lv_base_uom IS INITIAL.
-      rs_result-success = abap_false.
-      rs_result-status  = 'ERROR'.
-      rs_result-message = |Base unit not found for material { is_header-material }|.
-      RETURN.
-    ENDIF.
+        DATA(lv_base_uom) = get_base_unit( is_header-material ).
 
-    DATA(lv_payload) = build_payload(
-      is_header   = is_header
-      it_item     = it_item
-      iv_base_uom = lv_base_uom
-    ).
+        IF lv_base_uom IS INITIAL.
+          rs_result-success = abap_false.
+          rs_result-status  = 'ERROR'.
+          rs_result-message = |Base unit not found for material { is_header-material }|.
+          RETURN.
+        ENDIF.
 
-    IF lv_payload IS INITIAL.
-      rs_result-success = abap_false.
-      rs_result-status  = 'ERROR'.
-      rs_result-message = 'Payload could not be built'.
-      RETURN.
-    ENDIF.
+        DATA(lv_payload) = build_payload(
+          is_header   = is_header
+          it_item     = it_item
+          iv_base_uom = lv_base_uom
+        ).
 
-    rs_result = post_to_standard_api( lv_payload ).
+        IF lv_payload IS INITIAL.
+          rs_result-success = abap_false.
+          rs_result-status  = 'ERROR'.
+          rs_result-message = 'Payload could not be built. Please check BOM item component, quantity and unit.'.
+          RETURN.
+        ENDIF.
 
-    rs_result-base_uom = lv_base_uom.
+        rs_result = post_to_standard_api( lv_payload ).
+        rs_result-base_uom = lv_base_uom.
 
-    IF rs_result-api_response IS INITIAL.
-      rs_result-api_response = lv_payload.
-    ENDIF.
+        IF rs_result-api_response IS INITIAL.
+          rs_result-api_response = 'No API response received. API call may have failed before HTTP execution.'.
+        ENDIF.
+
+      CATCH cx_root INTO DATA(lx_error).
+
+        rs_result-success = abap_false.
+        rs_result-status  = 'ERROR'.
+        rs_result-message = build_exception_message( lx_error ).
+
+        IF rs_result-api_response IS INITIAL.
+          rs_result-api_response = 'Exception occurred in create_bom before API response was received.'.
+        ENDIF.
+
+    ENDTRY.
 
   ENDMETHOD.
 
 
+METHOD get_base_unit.
 
-  METHOD get_base_unit.
+  SELECT SINGLE baseunit
+    FROM i_product WITH PRIVILEGED ACCESS
+    WHERE product = @iv_material
+    INTO @rv_base_uom.
 
-    SELECT SINGLE BaseUnit
-      FROM I_Product WITH PRIVILEGED ACCESS
-      WHERE Product = @iv_material
-      INTO @rv_base_uom.
+  IF rv_base_uom IS NOT INITIAL.
 
-  ENDMETHOD.
+    rv_base_uom = zcl_uom_nzr_helper=>normalize_uom(
+                    iv_uom = rv_base_uom
+                  ).
 
+  ENDIF.
+
+ENDMETHOD.
 
 
   METHOD build_payload.
@@ -178,6 +212,8 @@ CLASS zcl_bom_create_api IMPLEMENTATION.
       WHEN is_header-bom_usage IS INITIAL THEN '1'
       ELSE is_header-bom_usage
     ).
+    CONDENSE lv_usage NO-GAPS.
+    TRANSLATE lv_usage TO UPPER CASE.
 
     DATA(lv_alt_bom) = CONV string( is_header-alt_bom ).
     CONDENSE lv_alt_bom NO-GAPS.
@@ -191,9 +227,27 @@ CLASS zcl_bom_create_api IMPLEMENTATION.
     DATA(lv_base_uom) = CONV string( iv_base_uom ).
     CONDENSE lv_base_uom NO-GAPS.
 
+    DATA(lv_header_qty) = |{ is_header-base_qty }|.
+    CONDENSE lv_header_qty NO-GAPS.
+
+    DATA(lv_bom_status) = COND string(
+  WHEN is_header-bom_status IS INITIAL THEN '2'
+  ELSE is_header-bom_status
+).
+
+    CONDENSE lv_bom_status NO-GAPS.
+
+    IF lv_header_qty IS INITIAL OR lv_header_qty = '0.000' OR lv_header_qty = '0'.
+      lv_header_qty = '1'.
+    ENDIF.
+
     DATA(lv_items_json) = ``.
 
     LOOP AT it_item INTO DATA(ls_item).
+
+      IF ls_item-component IS INITIAL.
+        CONTINUE.
+      ENDIF.
 
       DATA(lv_component) = |{ ls_item-component ALPHA = OUT }|.
       CONDENSE lv_component NO-GAPS.
@@ -203,15 +257,63 @@ CLASS zcl_bom_create_api IMPLEMENTATION.
         ELSE ls_item-item_category
       ).
       CONDENSE lv_item_category NO-GAPS.
+      TRANSLATE lv_item_category TO UPPER CASE.
 
       DATA(lv_qty) = |{ ls_item-quantity }|.
       CONDENSE lv_qty NO-GAPS.
 
+      IF lv_qty IS INITIAL OR lv_qty = '0.000' OR lv_qty = '0'.
+        CONTINUE.
+      ENDIF.
+
       DATA(lv_item_no) = CONV string( ls_item-item_no ).
       CONDENSE lv_item_no NO-GAPS.
 
+      IF lv_item_no IS INITIAL.
+        CONTINUE.
+      ENDIF.
+
       DATA(lv_uom) = CONV string( ls_item-uom ).
       CONDENSE lv_uom NO-GAPS.
+      TRANSLATE lv_uom TO UPPER CASE.
+
+      IF lv_uom IS INITIAL.
+        CONTINUE.
+      ENDIF.
+
+      DATA(lv_sort_string) = CONV string( ls_item-sort_string ).
+      CONDENSE lv_sort_string NO-GAPS.
+      TRANSLATE lv_sort_string TO UPPER CASE.
+
+      DATA(lv_sort_string_json) = ``.
+
+      IF lv_sort_string IS NOT INITIAL.
+        lv_sort_string_json = `"BOMItemSorter":"` && lv_sort_string && `",`.
+      ENDIF.
+
+      DATA(lv_relevance_json) = ``.
+
+      CASE lv_usage.
+
+        WHEN '1'. "Production
+          lv_relevance_json = `"IsProductionRelevant":true`.
+
+        WHEN '2'. "Engineering / Design
+          lv_relevance_json = `"IsEngineeringRelevant":true`.
+
+        WHEN '4'. "Plant Maintenance
+          lv_relevance_json = `"BOMItemIsPlantMaintRelevant":true`.
+
+        WHEN '5'. "Sales and Distribution
+          lv_relevance_json = `"IsSalesRelevant":true`.
+
+        WHEN 'S'. "Service Management
+          lv_relevance_json = `"BOMItemIsPlantMaintRelevant":true`.
+
+        WHEN OTHERS.
+          lv_relevance_json = `"IsProductionRelevant":true`.
+
+      ENDCASE.
 
       DATA(lv_item_json) =
         `{` &&
@@ -220,7 +322,8 @@ CLASS zcl_bom_create_api IMPLEMENTATION.
         `"BillOfMaterialItemQuantity":"` && lv_qty && `",` &&
         `"BillOfMaterialItemUnit":"` && lv_uom && `",` &&
         `"BillOfMaterialItemNumber":"` && lv_item_no && `",` &&
-        `"IsProductionRelevant":true` &&
+        lv_sort_string_json &&
+        lv_relevance_json &&
         `}`.
 
       IF lv_items_json IS INITIAL.
@@ -231,6 +334,11 @@ CLASS zcl_bom_create_api IMPLEMENTATION.
 
     ENDLOOP.
 
+    IF lv_items_json IS INITIAL.
+      rv_json = ``.
+      RETURN.
+    ENDIF.
+
     rv_json =
       `{` &&
       `"BillOfMaterialCategory":"M",` &&
@@ -239,20 +347,24 @@ CLASS zcl_bom_create_api IMPLEMENTATION.
       `"Plant":"` && lv_plant && `",` &&
       `"BillOfMaterialVariantUsage":"` && lv_usage && `",` &&
       `"BOMHeaderBaseUnit":"` && lv_base_uom && `",` &&
-      `"BOMHeaderQuantityInBaseUnit":"1",` &&
+      `"BOMHeaderQuantityInBaseUnit":"` && lv_header_qty && `",` &&
       `"HeaderValidityStartDate":"` && lv_valid_from && `",` &&
+      `"BillOfMaterialStatus":"` && lv_bom_status && `",` &&
       `"to_BillOfMaterialItem":{` &&
-        `"results":[` && lv_items_json && `]` &&
+      `"results":[` && lv_items_json && `]` &&
       `}` &&
       `}`.
 
   ENDMETHOD.
 
 
-
   METHOD convert_date_to_odata.
 
     DATA lv_timestamp TYPE timestampl.
+
+    IF iv_date IS INITIAL.
+      RETURN.
+    ENDIF.
 
     CONVERT DATE iv_date TIME '000000'
       INTO TIME STAMP lv_timestamp
@@ -270,22 +382,74 @@ CLASS zcl_bom_create_api IMPLEMENTATION.
   ENDMETHOD.
 
 
-
   METHOD get_api_base_url.
 
-    "Only host here. Full OData path is set in set_uri_path( ).
-    rv_url = 'https://my433482-api.s4hana.cloud.sap'.
+    DATA lv_url TYPE string.
+
+    lv_url = cl_abap_context_info=>get_system_url( ).
+
+    CONDENSE lv_url NO-GAPS.
+
+    IF lv_url CP '*/'.
+      lv_url = substring(
+        val = lv_url
+        off = 0
+        len = strlen( lv_url ) - 1
+      ).
+    ENDIF.
+
+    IF lv_url CS '-api.s4hana.cloud.sap'.
+      "Already API URL
+    ELSE.
+      REPLACE FIRST OCCURRENCE OF '.s4hana.cloud.sap'
+        IN lv_url
+        WITH '-api.s4hana.cloud.sap'.
+    ENDIF.
+
+    IF lv_url NA '://'.
+      lv_url = |https://{ lv_url }|.
+    ENDIF.
+
+    rv_url = lv_url.
 
   ENDMETHOD.
 
 
-
   METHOD get_basic_auth_header.
 
-    DATA lv_username TYPE string VALUE 'VIKRAM_API'.
-    DATA lv_password TYPE string VALUE '>z{2B%bvBB)3y+<9Xk652v}$q[SyyF]Y@pr%-Gc2'.
+    DATA lv_username TYPE string.
+    DATA lv_password TYPE string.
     DATA lv_raw      TYPE string.
     DATA lv_base64   TYPE string.
+    DATA lv_sysid    TYPE string.
+
+    lv_sysid = sy-sysid.
+    CONDENSE lv_sysid NO-GAPS.
+
+    CASE lv_sysid.
+
+
+      WHEN 'EGF'.
+
+        lv_username = 'VIKRAM_API'.
+        lv_password = '>z{2B%bvBB)3y+<9Xk652v}$q[SyyF]Y@pr%-Gc2'.
+
+      WHEN 'EI8'.
+
+        lv_username = 'VBOM_CREATE'.
+        lv_password = 'xR[ai4)Xb\%}]9-Q%PunHT69qrpVRWY%@z>dqRwq'.
+
+      WHEN 'ETT'.
+
+        lv_username = 'ZCS01_BOM'.
+        lv_password = 'A%3ENCn<sy~f2%hq97@S\qfVeF({9tjQGlEe+4(-'.
+
+    ENDCASE.
+
+    IF lv_username IS INITIAL OR lv_password IS INITIAL.
+      CLEAR rv_authorization.
+      RETURN.
+    ENDIF.
 
     lv_raw = |{ lv_username }:{ lv_password }|.
 
@@ -296,7 +460,6 @@ CLASS zcl_bom_create_api IMPLEMENTATION.
     rv_authorization = |Basic { lv_base64 }|.
 
   ENDMETHOD.
-
 
 
   METHOD post_to_standard_api.
@@ -312,6 +475,26 @@ CLASS zcl_bom_create_api IMPLEMENTATION.
         lv_base_url      = get_api_base_url( ).
         lv_authorization = get_basic_auth_header( ).
 
+        IF lv_base_url IS INITIAL.
+
+          rs_result-success      = abap_false.
+          rs_result-status       = 'ERROR'.
+          rs_result-message      = 'API base URL could not be determined.'.
+          rs_result-api_response = iv_payload.
+          RETURN.
+
+        ENDIF.
+
+        IF lv_authorization IS INITIAL.
+
+          rs_result-success      = abap_false.
+          rs_result-status       = 'ERROR'.
+          rs_result-message      = |Authorization could not be created for system { sy-sysid }.|.
+          rs_result-api_response = iv_payload.
+          RETURN.
+
+        ENDIF.
+
         DATA(lo_destination) =
           cl_http_destination_provider=>create_by_url(
             i_url = lv_base_url
@@ -322,9 +505,6 @@ CLASS zcl_bom_create_api IMPLEMENTATION.
             i_destination = lo_destination
           ).
 
-        "------------------------------------------------------------
-        " 1. Fetch CSRF token
-        "------------------------------------------------------------
         DATA(lo_request) = lo_client->get_http_request( ).
 
         lo_request->set_uri_path( lc_bom_api_path ).
@@ -339,16 +519,15 @@ CLASS zcl_bom_create_api IMPLEMENTATION.
           i_method = if_web_http_client=>get
         ).
 
-        lv_status = lo_response->get_status( )-code.
+        lv_status   = lo_response->get_status( )-code.
+        lv_response = lo_response->get_text( ).
 
         IF lv_status < 200 OR lv_status >= 300.
 
-          lv_response = lo_response->get_text( ).
-
           rs_result-success      = abap_false.
           rs_result-status       = 'ERROR'.
-          rs_result-message      = |CSRF token fetch failed. HTTP status: { lv_status }|.
-          rs_result-api_response = lv_response.
+          rs_result-message      = |CSRF token fetch failed. HTTP status: { lv_status }. { extract_error_message( lv_response ) }|.
+          rs_result-api_response = |API Response: { lv_response } Payload Prepared: { iv_payload }|.
           RETURN.
 
         ENDIF.
@@ -357,19 +536,14 @@ CLASS zcl_bom_create_api IMPLEMENTATION.
 
         IF lv_token IS INITIAL.
 
-          lv_response = lo_response->get_text( ).
-
           rs_result-success      = abap_false.
           rs_result-status       = 'ERROR'.
           rs_result-message      = 'CSRF token not received from BOM API'.
-          rs_result-api_response = lv_response.
+          rs_result-api_response = |API Response: { lv_response } Payload Prepared: { iv_payload }|.
           RETURN.
 
         ENDIF.
 
-        "------------------------------------------------------------
-        " 2. POST BOM payload
-        "------------------------------------------------------------
         lo_request = lo_client->get_http_request( ).
 
         lo_request->set_uri_path( lc_bom_api_path ).
@@ -399,22 +573,130 @@ CLASS zcl_bom_create_api IMPLEMENTATION.
 
         ELSE.
 
+          DATA(lv_api_error) = extract_error_message( lv_response ).
+
           rs_result-success      = abap_false.
           rs_result-status       = 'ERROR'.
-          rs_result-message      = |BOM creation failed. HTTP status: { lv_status }|.
-          rs_result-api_response = lv_response.
+          rs_result-message      = |BOM creation failed. HTTP status: { lv_status }. { lv_api_error }|.
+          rs_result-api_response = |API Response: { lv_response } Payload Sent: { iv_payload }|.
 
+        ENDIF.
+
+      CATCH cx_web_http_client_error INTO DATA(lx_http_error).
+
+        rs_result-success = abap_false.
+        rs_result-status  = 'ERROR'.
+
+        DATA(lv_http_error_text) = lx_http_error->get_text( ).
+
+        IF lv_http_error_text IS INITIAL.
+          lv_http_error_text = 'CX_WEB_HTTP_CLIENT_ERROR occurred, but no detailed text was returned.'.
+        ENDIF.
+
+        rs_result-message =
+          |HTTP client error while calling BOM API. Base URL: { lv_base_url }. API Path: { lc_bom_api_path }. Error: { lv_http_error_text }|.
+
+        IF lv_response IS NOT INITIAL.
+          rs_result-api_response = |API Response: { lv_response } Payload Sent: { iv_payload }|.
+        ELSE.
+          rs_result-api_response = |No HTTP response received. Payload Prepared: { iv_payload }|.
         ENDIF.
 
       CATCH cx_root INTO DATA(lx_error).
 
-        rs_result-success      = abap_false.
-        rs_result-status       = 'ERROR'.
-        rs_result-message      = lx_error->get_text( ).
-        rs_result-api_response = iv_payload.
+        rs_result-success = abap_false.
+        rs_result-status  = 'ERROR'.
+        rs_result-message = build_exception_message( lx_error ).
+
+        IF lv_response IS NOT INITIAL.
+          rs_result-api_response = |API Response: { lv_response } Payload Sent: { iv_payload }|.
+        ELSE.
+          rs_result-api_response =
+            |Exception occurred before SAP API response was received. Payload Prepared: { iv_payload }|.
+        ENDIF.
 
     ENDTRY.
 
   ENDMETHOD.
 
+
+  METHOD extract_error_message.
+
+    rv_message = iv_response.
+
+    IF iv_response IS INITIAL.
+      rv_message = 'No response body received from API.'.
+      RETURN.
+    ENDIF.
+
+    TRY.
+
+        TYPES: BEGIN OF ty_error_message,
+                 value TYPE string,
+               END OF ty_error_message.
+
+        TYPES: BEGIN OF ty_error,
+                 code    TYPE string,
+                 message TYPE ty_error_message,
+               END OF ty_error.
+
+        TYPES: BEGIN OF ty_error_root,
+                 error TYPE ty_error,
+               END OF ty_error_root.
+
+        DATA ls_error TYPE ty_error_root.
+
+        /ui2/cl_json=>deserialize(
+          EXPORTING
+            json = iv_response
+          CHANGING
+            data = ls_error
+        ).
+
+        IF ls_error-error-message-value IS NOT INITIAL.
+
+          rv_message = ls_error-error-message-value.
+
+        ELSEIF ls_error-error-code IS NOT INITIAL.
+
+          rv_message = ls_error-error-code.
+
+        ELSE.
+
+          rv_message = iv_response.
+
+        ENDIF.
+
+      CATCH cx_root.
+        rv_message = iv_response.
+    ENDTRY.
+
+  ENDMETHOD.
+
+
+  METHOD build_exception_message.
+
+    DATA lv_class_name TYPE string.
+    DATA lv_text       TYPE string.
+
+    IF ix_error IS INITIAL.
+      rv_message = 'Unknown exception occurred.'.
+      RETURN.
+    ENDIF.
+
+    TRY.
+        lv_class_name = cl_abap_classdescr=>get_class_name( ix_error ).
+      CATCH cx_root.
+        lv_class_name = 'UNKNOWN_EXCEPTION_CLASS'.
+    ENDTRY.
+
+    lv_text = ix_error->get_text( ).
+
+    IF lv_text IS INITIAL.
+      rv_message = |Exception: { lv_class_name }|.
+    ELSE.
+      rv_message = |Exception: { lv_class_name } - { lv_text }|.
+    ENDIF.
+
+  ENDMETHOD.
 ENDCLASS.

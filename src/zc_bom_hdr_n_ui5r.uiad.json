@@ -1,0 +1,35 @@
+{
+  "formatVersion": "2",
+  "header": {
+    "description": "An SAP Fiori application.",
+    "originalLanguage": "en",
+    "abapLanguageVersion": "cloudDevelopment"
+  },
+  "generalInformation": {
+    "appType": "ui5",
+    "catalogId": "SAP_TC_UI5_REPO_UIAD",
+    "targetMappingTitle": "Bom Automation"
+  },
+  "ui5AppDetails": {
+    "appId": "zppbomautomation"
+  },
+  "navigation": {
+    "targetMappingId": "UI5R_A3D5D0EBF46383084E3CACAC9F3021A7DAD4B834_TM",
+    "semanticObject": "zc_bom_hdr_n",
+    "action": "display",
+    "desktop": true,
+    "tablet": true,
+    "phone": true
+  },
+  "tiles": [
+    {
+      "id": "UI5R_A3D5D0EBF46383084E3CACAC9F3021A7DAD4B834_AL",
+      "tileType": "static",
+      "isDefault": true,
+      "standard": {
+        "title": "Bom Automation",
+        "icon": "sap-icon://factory"
+      }
+    }
+  ]
+}

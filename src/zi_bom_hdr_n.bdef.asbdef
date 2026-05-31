@@ -10,38 +10,37 @@ authorization master ( instance )
   create ( authorization : global );
   update;
   delete;
-  field(numbering : managed,readonly)  BomId;
-  field ( readonly )
-    CreatedBy,
-    CreatedAt,
-    ChangedBy,
-    ChangedAt,
-    LocalLastChangedAt;
+  field ( numbering : managed, readonly ) BomId;
+  field ( readonly ) CreatedBy, CreatedAt, ChangedBy, ChangedAt, LocalLastChangedAt;
   association _Item { create; }
 
 
-action SubmitBOM result [1] $self;
-  determination CreateStandardBOM on modify { create; }
 
-    mapping for ztb_bom_hdr_n
-  {
-    BomId              = bom_id;
-    Material           = material;
-    Plant              = plant;
-    BomUsage           = bom_usage;
-    AltBom             = alt_bom;
-    BaseQty            = base_qty;
-    BaseUom            = base_uom;
-    ValidFrom          = valid_from;
-    Status             = status;
-    Message            = message;
-    ApiResponse        = api_response;
-    CreatedBy          = created_by;
-    CreatedAt          = created_at;
-    ChangedBy          = changed_by;
-    ChangedAt          = changed_at;
-    LocalLastChangedAt = local_last_changed_at;
-  }
+  determination CreateStandardBOM on modify { create; }
+   action ChangeExistingBOM
+    parameter ZABS_BOM_CHANGE_PARAM
+    result [1] $self;
+
+  mapping for ztb_bom_hdr_n
+    {
+      BomId              = bom_id;
+      Material           = material;
+      Plant              = plant;
+      BomUsage           = bom_usage;
+      AltBom             = alt_bom;
+      BaseQty            = base_qty;
+      BaseUom            = base_uom;
+      ValidFrom          = valid_from;
+      BomStatus          = bom_status;
+      Status             = status;
+      Message            = message;
+      ApiResponse        = api_response;
+      CreatedBy          = created_by;
+      CreatedAt          = created_at;
+      ChangedBy          = changed_by;
+      ChangedAt          = changed_at;
+      LocalLastChangedAt = local_last_changed_at;
+    }
 }
 
 define behavior for ZI_BOM_ITM_N //alias <alias_name>
@@ -52,22 +51,24 @@ authorization dependent by _Header
 {
   update;
   delete;
-    field ( readonly:update ) ItemNo;
-  field ( readonly ) BomId;
+  field ( readonly : update ) ItemNo;
+  field ( readonly ) BomId, CreatedBy, CreatedAt, ChangedBy, ChangedAt, LocalLastChangedAt;
+
   association _Header;
-    mapping for ztb_bom_itm_n
-  {
-    BomId              = bom_id;
-    ItemNo             = item_no;
-    ItemCategory       = item_category;
-    Component          = component;
-    Quantity           = quantity;
-    Uom                = uom;
-    ItemText           = item_text;
-    CreatedBy          = created_by;
-    CreatedAt          = created_at;
-    ChangedBy          = changed_by;
-    ChangedAt          = changed_at;
-    LocalLastChangedAt = local_last_changed_at;
-  }
+  mapping for ztb_bom_itm_n
+    {
+      BomId              = bom_id;
+      ItemNo             = item_no;
+      ItemCategory       = item_category;
+      Component          = component;
+      Quantity           = quantity;
+      Uom                = uom;
+      ItemText           = item_text;
+      SortString         = sort_string;
+      CreatedBy          = created_by;
+      CreatedAt          = created_at;
+      ChangedBy          = changed_by;
+      ChangedAt          = changed_at;
+      LocalLastChangedAt = local_last_changed_at;
+    }
 }

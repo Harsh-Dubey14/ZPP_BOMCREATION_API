@@ -1,19 +1,19 @@
 projection;
 strict ( 2 );
 
-define behavior for ZC_BOM_HDR_N alias BomCreate
+define behavior for ZC_BOM_HDR_N //alias <alias_name>
 {
   use create;
   use update;
   use delete;
 
+  use action ChangeExistingBOM;
+
   use association _Item { create; }
-    use action SubmitBOM;
 }
 
-define behavior for ZC_BOM_ITM_N alias BomCreateItem
+define behavior for ZC_BOM_ITM_N //alias <alias_name>
 {
-
   use update;
   use delete;
 

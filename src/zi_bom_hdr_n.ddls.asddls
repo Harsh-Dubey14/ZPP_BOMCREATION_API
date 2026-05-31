@@ -14,6 +14,7 @@ define root view entity ZI_BOM_HDR_N
       base_qty              as BaseQty,
       base_uom              as BaseUom,
       valid_from            as ValidFrom,
+      bom_status            as BomStatus,
       status                as Status,
       message               as Message,
       api_response          as ApiResponse,

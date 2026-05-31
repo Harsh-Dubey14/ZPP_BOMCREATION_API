@@ -1,0 +1,32 @@
+unmanaged implementation in class ZBP_CE_BOM_CHANGE_READ unique;
+strict ( 2 );
+
+define behavior for ZCE_BOM_CHANGE_READ alias BomChangeRead
+lock master
+authorization master ( global )
+{
+  field ( readonly )
+    BomKey,
+    BillOfMaterial,
+    BillOfMaterialCategory,
+    BillOfMaterialVariant,
+    BillOfMaterialVariantUsage,
+    BillOfMaterialVersion,
+    HeaderChangeDocument,
+    Material,
+    Plant,
+    BillOfMaterialItemNodeNumber,
+    BillOfMaterialItemNumber,
+    BillOfMaterialItemCategory,
+    BillOfMaterialComponent,
+    BillOfMaterialItemQuantity,
+    BillOfMaterialItemUnit,
+    BOMItemDescription,
+    BOMItemSorter,
+    IsProductionRelevant,
+    RowStatus,
+    IsNew,
+    IsChanged,
+    Status,
+    Message;
+}

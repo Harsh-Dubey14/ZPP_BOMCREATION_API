@@ -6,21 +6,25 @@ CLASS zcl_bom_validation DEFINITION
   PUBLIC SECTION.
 
     TYPES: BEGIN OF ty_result,
-             material  TYPE matnr,
-             plant     TYPE werks_d,
+             material  TYPE i_product-product,
+             plant     TYPE i_plant-plant,
              is_valid  TYPE abap_boolean,
-             base_unit TYPE meins,
+             base_unit TYPE i_billofmaterialitemtp_3-billofmaterialitemunit,
              message   TYPE string,
            END OF ty_result.
 
     METHODS validate_material_plant
       IMPORTING
-        iv_material TYPE matnr
-        iv_plant    TYPE werks_d
+                iv_material      TYPE i_product-product
+                iv_plant         TYPE i_plant-plant
       RETURNING VALUE(rs_result) TYPE ty_result.
 
 ENDCLASS.
-CLASS zcl_bom_validation IMPLEMENTATION.
+
+
+
+CLASS ZCL_BOM_VALIDATION IMPLEMENTATION.
+
 
   METHOD validate_material_plant.
 
@@ -59,9 +63,13 @@ CLASS zcl_bom_validation IMPLEMENTATION.
       WHERE product = @iv_material
       INTO @rs_result-base_unit.
 
+    IF rs_result-base_unit = 'ST'.
+      rs_result-base_unit = 'PC'.
+    ENDIF.
+
+
     rs_result-is_valid = abap_true.
     rs_result-message  = |Material { iv_material } exists in plant { iv_plant }|.
 
   ENDMETHOD.
-
 ENDCLASS.

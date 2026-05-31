@@ -3,10 +3,10 @@
  <asx:abap xmlns:asx="http://www.sap.com/abapxml" version="1.0">
   <asx:values>
    <DDLS>
-    <DDLNAME>ZA_BOM_ALT_ITEM_RES</DDLNAME>
+    <DDLNAME>ZI_SORT_STRING</DDLNAME>
     <DDLANGUAGE>E</DDLANGUAGE>
-    <DDTEXT>Alternate BOM Item Response</DDTEXT>
-    <SOURCE_TYPE>A</SOURCE_TYPE>
+    <DDTEXT>interface for sort string</DDTEXT>
+    <SOURCE_TYPE>W</SOURCE_TYPE>
    </DDLS>
   </asx:values>
  </asx:abap>

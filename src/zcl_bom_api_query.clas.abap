@@ -9,7 +9,9 @@ CLASS zcl_bom_api_query DEFINITION
 ENDCLASS.
 
 
-CLASS zcl_bom_api_query IMPLEMENTATION.
+
+CLASS ZCL_BOM_API_QUERY IMPLEMENTATION.
+
 
   METHOD if_rap_query_provider~select.
 
@@ -51,5 +53,4 @@ CLASS zcl_bom_api_query IMPLEMENTATION.
     ENDIF.
 
   ENDMETHOD.
-
 ENDCLASS.
